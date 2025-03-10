@@ -1,0 +1,72 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model User {
+    id        String   @id @default(cuid())
+    name      String?
+    email     String   @unique
+    password  String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    conversations Conversation[]
+    messages      Message[]
+    subscription  Subscription?
+
+    @@map("users")
+}
+
+model Conversation {
+    id        String   @id @default(cuid())
+    name      String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    userId   String
+    user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    messages Message[]
+
+    @@index([userId])
+    @@map("conversations")
+}
+
+model Message {
+    id        String   @id @default(cuid())
+    content   String
+    role      String // 'user' or 'assistant'
+    createdAt DateTime @default(now())
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    conversationId String?
+    conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@index([conversationId])
+    @@map("messages")
+}
+
+model Subscription {
+    id     String @id @default(cuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    stripeCustomerId       String?   @unique
+    stripeSubscriptionId   String?   @unique
+    stripePriceId          String?
+    stripeCurrentPeriodEnd DateTime?
+
+    planId String @default("free") // 'free', 'basic', 'premium'
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("subscriptions")
+}
