@@ -2,14 +2,14 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { LoginForm } from "@/components/auth/login-form";
+import { SignUpForm } from "@/components/auth/sign-up-form";
 
 export const metadata: Metadata = {
-  title: "Login",
-  description: "Login to your account",
+  title: "Sign Up",
+  description: "Create a new account",
 };
 
-export default async function LoginPage() {
+export default async function SignUpPage() {
   const session = await auth();
 
   if (session) {
@@ -19,8 +19,8 @@ export default async function LoginPage() {
   return (
     <div className="h-full flex items-center justify-center pb-48">
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Welcome Back</h1>
-        <LoginForm />
+        <h1 className="text-2xl font-bold text-center mb-6">Create an Account</h1>
+        <SignUpForm />
       </div>
     </div>
   );

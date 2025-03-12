@@ -35,14 +35,14 @@ export async function Header() {
             ) : (
               <>
                 <Button asChild variant="outline" size="sm">
-                  <Link href="/login">
-                    Login
+                  <Link href="/signin">
+                    Sign In
                     <LogIn className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="default" size="sm">
-                  <Link href="/register">
-                    Register
+                  <Link href="/signup">
+                    Sign Up
                     <UserPlus className="h-4 w-4" />
                   </Link>
                 </Button>

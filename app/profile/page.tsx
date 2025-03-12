@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { auth } from "@/auth";
 import { ProfileForm } from "@/components/profile/settings-form";
 
@@ -5,7 +7,7 @@ export default async function ProfilePage() {
   const session = await auth();
 
   if (!session?.user) {
-    return null;
+    redirect("/signin");
   }
 
   return (

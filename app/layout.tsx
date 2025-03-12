@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Toaster />
+        <Toaster richColors />
         <div className="grid grid-rows-[auto_1fr] min-h-screen">
           <Header />
           <main>{children}</main>

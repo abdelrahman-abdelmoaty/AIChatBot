@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
+import { saveChat } from "@/actions/save-chat";
 
 const model = anthropic("claude-3-haiku-20240307");
 
@@ -77,6 +78,10 @@ export async function POST(req: NextRequest) {
     const response = streamText({
       model,
       messages,
+      onFinish: async (message) => {
+        console.log(message);
+        await saveChat({ conversationId: conversation.id, content: message.text, role: "assistant" });
+      },
     });
 
     // Create headers with conversation ID
@@ -84,14 +89,14 @@ export async function POST(req: NextRequest) {
     headers.append("x-conversation-id", conversation.id);
 
     // Create a placeholder for the AI response message
-    const aiMessage = await prisma.message.create({
-      data: {
-        content: "",
-        role: "assistant",
-        userId: user.id,
-        conversationId: conversation.id,
-      },
-    });
+    // const aiMessage = await prisma.message.create({
+    //   data: {
+    //     content: "",
+    //     role: "assistant",
+    //     userId: user.id,
+    //     conversationId: conversation.id,
+    //   },
+    // });
 
     // Return the stream response
     return response.toDataStreamResponse({ headers });

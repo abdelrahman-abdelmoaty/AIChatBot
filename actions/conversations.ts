@@ -1,14 +1,14 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 
-export const getChats = async () => {
+export const getConversations = async () => {
   try {
     const session = await auth();
     if (!session?.user) {
       throw new Error("Unauthorized");
     }
 
-    const chats = await prisma.conversation.findMany({
+    const conversations = await prisma.conversation.findMany({
       where: {
         userId: session.user.id,
       },
@@ -20,9 +20,9 @@ export const getChats = async () => {
       },
     });
 
-    return chats;
+    return conversations;
   } catch (error) {
-    console.error("Failed to fetch chats:", error);
-    throw new Error("Failed to fetch chats");
+    console.error("Failed to fetch conversations:", error);
+    throw new Error("Failed to fetch conversations");
   }
 };

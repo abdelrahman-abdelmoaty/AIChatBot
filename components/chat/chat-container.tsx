@@ -1,43 +1,74 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useChat } from "ai/react";
-import { Loader2, Send, Trash2, Plus } from "lucide-react";
+import { useChat } from "@ai-sdk/react";
+import { Loader2, Send, Plus, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Conversation, Message } from "@/lib/types";
+import { Conversation } from "@/lib/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
+import { log } from "console";
+import { saveChat } from "@/actions/save-chat";
 
-export function ChatContainer({ initialChats }: { initialChats: Conversation[] }) {
-  const [chatHistories, setChatHistories] = useState<Conversation[]>(initialChats);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+const DEFAULT_PROMPTS = [
+  "Tell me about the latest developments in AI",
+  "Help me write a professional email",
+  "Explain quantum computing in simple terms",
+  "Give me some creative writing prompts",
+];
+
+export function ChatContainer({
+  initialConversations,
+  conversationSlug,
+}: {
+  initialConversations: Conversation[];
+  conversationSlug: string | null;
+}) {
+  const [chatHistories, setChatHistories] = useState<Conversation[]>(initialConversations);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(conversationSlug);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const { messages, input, handleInputChange, handleSubmit, status, setMessages, setInput } = useChat({
     api: "/api/chat",
+    initialMessages:
+      initialConversations
+        .find((conversation) => conversation.id === conversationSlug)
+        ?.messages.map((message) => ({
+          id: message.id,
+          role: message.role as "system" | "user" | "assistant" | "data",
+          content: message.content,
+        })) || [],
     body: {
       conversationId: currentChatId,
     },
     onResponse: (response) => {
-      const responseData = response.headers.get("x-conversation-id");
-      if (responseData && !currentChatId) {
-        setCurrentChatId(responseData);
-        // Create new chat history
+      const responseConversationId = response.headers.get("x-conversation-id");
+      if (responseConversationId && !currentChatId) {
+        setCurrentChatId(responseConversationId);
+
+        window.history.pushState({}, "", `/chat/${responseConversationId}`);
+        // Use the input text as the chat name
+        const chatName = input || "New Chat";
+
         const newChat: Conversation = {
-          id: responseData,
-          name: messages[0].content.slice(0, 100),
+          id: responseConversationId,
+          name: chatName,
           messages: messages.map((message) => ({
             id: message.id,
             role: message.role,
             content: message.content,
-            conversationId: responseData,
+            conversationId: responseConversationId,
             createdAt: new Date(),
             userId: "",
           })),
@@ -45,14 +76,14 @@ export function ChatContainer({ initialChats }: { initialChats: Conversation[] }
           updatedAt: new Date(),
           userId: "",
         };
-        setChatHistories((prev) => [...prev, newChat]);
+        setChatHistories((prev) => [newChat, ...prev]);
       } else if (currentChatId) {
-        // Update existing chat history
         setChatHistories((prev) =>
           prev.map((chat) => {
             if (chat.id === currentChatId) {
               return {
                 ...chat,
+                updatedAt: new Date(),
                 messages: messages.map((msg) => ({
                   id: msg.id,
                   role: msg.role,
@@ -68,18 +99,27 @@ export function ChatContainer({ initialChats }: { initialChats: Conversation[] }
         );
       }
     },
+
+    onError: (error) => {
+      toast.error(JSON.parse(error.message).error);
+    },
   });
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100); // Small delay to ensure content is rendered
+    }
   }, [messages]);
 
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "inherit";
       const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${scrollHeight}px`;
-      textareaRef.current.style.maxHeight = "200px";
+      textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
     }
   }, [input]);
 
@@ -88,204 +128,222 @@ export function ChatContainer({ initialChats }: { initialChats: Conversation[] }
     setMessages([]);
   };
 
-  const handleSelectChat = (chatId: string) => {
+  const handleChatSelect = (chatId: string) => {
+    if (chatId === currentChatId) return;
+
     setCurrentChatId(chatId);
-    const chat = chatHistories.find((c) => c.id === chatId);
-    if (chat) {
+    const selectedChat = chatHistories.find((chat) => chat.id === chatId);
+    if (selectedChat) {
       setMessages(
-        chat.messages.map((msg) => ({
+        selectedChat.messages.map((msg) => ({
           id: msg.id,
-          role: msg.role,
+          role: msg.role as "system" | "user" | "assistant" | "data",
           content: msg.content,
         }))
       );
+      window.history.pushState({}, "", `/chat/${chatId}`);
     }
   };
 
-  const handleDeleteChat = (chatId: string) => {
-    setChatHistories((prev) => prev.filter((chat) => chat.id !== chatId));
-    if (currentChatId === chatId) {
-      handleNewChat();
+  const handlePromptSelect = (prompt: string) => {
+    setInput(prompt);
+    handleSubmit();
+  };
+
+  // Format timestamp for display - simplified for sidebar
+  const formatTimestamp = (date: Date) => {
+    try {
+      return format(new Date(date), "MMM d, h:mm a");
+    } catch (e) {
+      return "Recent"; // Fallback if date is invalid
     }
   };
 
-  const exampleQuestions = [
-    "What is machine learning?",
-    "Can you explain how blockchain works?",
-    "How can I improve my productivity?",
-    "Write a short poem about technology",
-  ];
+  // Generate chat preview text
+  const getChatPreview = (chat: Conversation) => {
+    // Find the last user or assistant message
+    const lastMessage = [...chat.messages].reverse().find((msg) => msg?.role === "user" || msg?.role === "assistant");
+
+    if (!lastMessage?.content) return "New conversation";
+
+    // Create a clean preview - truncate at 30 chars
+    return lastMessage.content.slice(0, 30) + (lastMessage.content.length > 30 ? "..." : "");
+  };
+
+  // Generate a unique chat name based on first user message
+  const getChatName = (chat: Conversation) => {
+    return chat.name || "New Chat";
+  };
+
+  // Deduplicate chats by content if needed
+  const uniqueChats = chatHistories.filter((chat, index, self) => index === self.findIndex((c) => c.id === chat.id));
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">AI Chat</h1>
-        <div className="flex gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={handleNewChat}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>New Chat</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+    <div className="flex h-full bg-background">
+      {/* Sidebar */}
+      <div className="w-72 border-r bg-muted/20 p-4 flex flex-col">
+        <Button
+          onClick={handleNewChat}
+          className="w-full mb-4 gap-2 shadow-sm hover:shadow-md transition-all"
+          variant="default"
+        >
+          <Plus className="h-4 w-4" />
+          New Conversation
+        </Button>
+
+        <div className="mb-2 text-sm font-medium text-muted-foreground px-2">
+          {uniqueChats.length > 0 ? "Your conversations" : "No conversations yet"}
         </div>
+
+        <ScrollArea className="flex-1">
+          <div className="space-y-2">
+            {uniqueChats.map((chat) => (
+              <Button
+                key={chat.id}
+                variant={currentChatId === chat.id ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full py-3 px-3 h-auto items-start justify-start whitespace-normal",
+                  "flex flex-col gap-1 text-left",
+                  currentChatId === chat.id ? "bg-secondary/80 shadow-sm" : "hover:bg-secondary/40"
+                )}
+                onClick={() => handleChatSelect(chat.id)}
+              >
+                <div className="flex">
+                  <MessageSquare className="h-4 w-4 mr-2 flex-shrink-0 opacity-70" />
+                  <div className="font-medium line-clamp-2 -mt-1">{getChatName(chat)}</div>
+                </div>
+                <div className="text-xs text-muted-foreground w-full text-right">
+                  {formatTimestamp(chat.updatedAt || chat.createdAt)}
+                </div>
+              </Button>
+            ))}
+          </div>
+        </ScrollArea>
       </div>
 
-      <div className="flex gap-4 flex-1">
-        <div className="w-64 flex flex-col gap-2">
-          <Button onClick={handleNewChat} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            New Chat
-          </Button>
-          <ScrollArea className="flex-1">
-            {chatHistories.map((chat) => (
-              <div
-                key={chat.id}
-                className={cn(
-                  "flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-muted",
-                  currentChatId === chat.id && "bg-muted"
-                )}
-                onClick={() => handleSelectChat(chat.id)}
-              >
-                <span className="truncate">{chat.name}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteChat(chat.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </ScrollArea>
-        </div>
-
-        <Card className="flex flex-1 flex-col">
-          <CardHeader className="px-4 py-3 border-b">
-            <CardTitle className="text-base font-medium">
-              {currentChatId ? chatHistories.find((c) => c.id === currentChatId)?.name || "Conversation" : "New Chat"}
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="flex-1 p-0 overflow-hidden">
-            <ScrollArea className="h-full p-4">
-              {messages.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center space-y-6 text-center p-8">
-                  <div className="rounded-full bg-primary/10 p-4">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-10 w-10 text-primary"
-                    >
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                  </div>
-                  <div className="space-y-2 max-w-sm">
-                    <h3 className="text-xl font-semibold">Start a conversation</h3>
-                    <p className="text-muted-foreground text-sm">Ask any question or try one of these examples:</p>
-                  </div>
-                  <div className="grid gap-2 w-full max-w-sm">
-                    {exampleQuestions.map((question) => (
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Card className="flex-1 flex flex-col border-0 rounded-none shadow-none bg-background">
+          <CardContent className="flex-1 p-0 overflow-hidden relative">
+            {messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-center p-8">
+                <div className="max-w-md space-y-6">
+                  <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  <h3 className="text-lg font-medium">Start a new conversation</h3>
+                  <p className="text-muted-foreground mb-4">Choose a prompt or type your own message to get started:</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {DEFAULT_PROMPTS.map((prompt, index) => (
                       <Button
-                        key={question}
+                        key={index}
                         variant="outline"
-                        className="justify-start"
-                        onClick={() => {
-                          handleInputChange({ target: { value: question } } as any);
-                          if (textareaRef.current) {
-                            textareaRef.current.focus();
-                          }
-                        }}
+                        className="text-left h-auto py-3 justify-start"
+                        onClick={() => handlePromptSelect(prompt)}
                       >
-                        {question}
+                        <MessageSquare className="h-4 w-4 mr-2 flex-shrink-0" />
+                        {prompt}
                       </Button>
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-6">
+              </div>
+            ) : (
+              <ScrollArea ref={scrollAreaRef} className="h-full py-6 px-4">
+                <div className="max-w-3xl mx-auto space-y-6">
                   {messages.map((message, index) => (
                     <div
                       key={index}
                       className={cn(
-                        "flex items-start gap-3 text-sm",
-                        message.role === "user" ? "flex-row-reverse" : ""
+                        "flex gap-4 text-sm animate-in fade-in",
+                        message.role === "user" ? "justify-end" : "justify-start"
                       )}
                     >
-                      <Avatar className={cn("h-8 w-8", message.role === "user" ? "ml-2" : "mr-2")}>
-                        {message.role === "user" ? (
-                          <AvatarFallback className="bg-primary text-primary-foreground">U</AvatarFallback>
-                        ) : (
-                          <>
-                            <AvatarImage src="/images/bot-avatar.png" alt="AI" />
-                            <AvatarFallback className="bg-muted">AI</AvatarFallback>
-                          </>
-                        )}
-                      </Avatar>
+                      {message.role !== "user" && (
+                        <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            <Sparkles className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+
                       <div
                         className={cn(
-                          "rounded-lg px-4 py-2 max-w-[80%]",
-                          message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                          "rounded-lg px-4 py-3 max-w-[85%]",
+                          message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted shadow-sm"
                         )}
                       >
-                        <div className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-muted prose-pre:rounded-md max-w-none whitespace-pre-wrap">
+                        <div className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-secondary prose-pre:rounded-md max-w-none">
                           {message.content}
                         </div>
                       </div>
+
+                      {message.role === "user" && (
+                        <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
+                          <AvatarFallback className="bg-secondary text-secondary-foreground">U</AvatarFallback>
+                        </Avatar>
+                      )}
                     </div>
                   ))}
-                  {isLoading && (
-                    <div className="flex justify-center p-4">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+
+                  {(status === "streaming" || status === "submitted") && (
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          <Sparkles className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="bg-muted p-4 rounded-lg shadow-sm flex items-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                        <span className="text-sm text-muted-foreground">Thinking...</span>
+                      </div>
                     </div>
                   )}
+
                   <div ref={messagesEndRef} />
                 </div>
-              )}
-            </ScrollArea>
+              </ScrollArea>
+            )}
           </CardContent>
 
           <Separator />
 
-          <CardFooter className="p-4">
-            <form onSubmit={handleSubmit} className="flex w-full items-end gap-2">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={handleInputChange}
-                placeholder="Type your message..."
-                className="min-h-[60px] flex-1 resize-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    const form = e.currentTarget.form;
-                    if (form && input.trim()) {
-                      form.dispatchEvent(new Event("submit", { cancelable: true }));
+          <CardFooter className="p-4 bg-background">
+            <form ref={formRef} onSubmit={handleSubmit} className="flex w-full items-end gap-2 max-w-3xl mx-auto">
+              <div className="relative w-full max-w-3xl">
+                <Textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={handleInputChange}
+                  placeholder="Type your message..."
+                  className="min-h-[60px] pr-12 resize-none focus-visible:ring-1 focus-visible:ring-offset-0 border-muted"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (input.trim()) {
+                        handleSubmit(e as any);
+                      }
                     }
-                  }
-                }}
-              />
-              <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="h-10 w-10">
-                <Send className="h-4 w-4" />
-                <span className="sr-only">Send</span>
-              </Button>
+                  }}
+                />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        disabled={status === "streaming" || status === "submitted" || !input.trim()}
+                        className="absolute bottom-2 right-2 h-8 w-8"
+                      >
+                        <Send className="h-4 w-4" />
+                        <span className="sr-only">Send</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Send message (Enter)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </form>
-            {error && (
-              <p className="mt-2 text-sm text-destructive">
-                {error.message || "Something went wrong. Please try again."}
-              </p>
-            )}
           </CardFooter>
         </Card>
       </div>

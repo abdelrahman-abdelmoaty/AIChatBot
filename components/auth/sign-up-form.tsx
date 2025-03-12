@@ -4,7 +4,6 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 const formSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
@@ -22,13 +22,13 @@ const formSchema = z.object({
   }),
 });
 
-export function LoginForm() {
-  const router = useRouter();
+export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
     },
@@ -38,20 +38,29 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email: values.email,
-        password: values.password,
-        redirect: false,
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
       });
 
-      if (result?.error) {
-        toast.error("Invalid email or password");
-      } else {
-        router.push("/chat");
-        router.refresh();
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong");
       }
+
+      toast.success("Registration successful!");
+
+      await signIn("credentials", {
+        email: values.email,
+        password: values.password,
+        redirectTo: "/chat",
+      });
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +70,19 @@ export function LoginForm() {
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter your name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="email"
@@ -88,14 +110,14 @@ export function LoginForm() {
             )}
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Loading..." : "Sign In"}
+            {isLoading ? "Loading..." : "Sign Up"}
           </Button>
         </form>
       </Form>
       <p className="text-center text-sm text-gray-500">
-        Don't have an account?{" "}
-        <Link href="/register" className="text-blue-600 hover:underline">
-          Register here
+        Already have an account?{" "}
+        <Link href="/signin" className="text-primary hover:underline">
+          Sign in here
         </Link>
       </p>
     </div>

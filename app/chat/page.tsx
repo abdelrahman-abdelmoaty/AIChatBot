@@ -1,6 +1,9 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
+
 import { ChatContainer } from "@/components/chat/chat-container";
-import { getChats } from "@/actions/chat";
+import { getConversations } from "@/actions/conversations";
+import { auth } from "@/auth";
 
 export const metadata: Metadata = {
   title: "AI Chat",
@@ -8,11 +11,13 @@ export const metadata: Metadata = {
 };
 
 export default async function ChatPage() {
-  const chats = await getChats();
+  const session = await auth();
 
-  return (
-    <div className="container mx-auto py-6">
-      <ChatContainer initialChats={chats} />
-    </div>
-  );
+  if (!session) {
+    redirect("/signin");
+  }
+
+  const conversations = await getConversations();
+
+  return <ChatContainer initialConversations={conversations} conversationSlug={null} />;
 }
