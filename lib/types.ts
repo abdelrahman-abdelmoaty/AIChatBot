@@ -15,3 +15,11 @@ export interface Conversation {
   userId: string;
   messages: Message[];
 }
+
+export type Role = "user" | "assistant" | "system";
+
+export interface User {
+  id: string;
+  name: string | null;
+  email: string;
+}

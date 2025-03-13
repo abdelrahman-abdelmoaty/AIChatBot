@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { Metadata } from "next";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import Link from "next/link";
-
 export const metadata: Metadata = {
   title: "Error",
   description: "Something went wrong.",
@@ -16,16 +17,28 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   }, [error]);
 
   return (
-    <div className="h-full flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold mb-4">Something went wrong!</h1>
-      <p className="text-lg text-muted-foreground mb-6">{error.message || "An unexpected error occurred"}</p>
-      <div className="flex gap-4">
-        <button onClick={reset} className="text-primary hover:underline">
-          Try again
-        </button>
-        <Link href="/" className="text-primary hover:underline">
-          Return Home
-        </Link>
+    <div className="h-full flex flex-col items-center justify-center p-4">
+      <div className="pb-48">
+        <Card className="max-w-[400px] p-8">
+          <CardHeader className="text-center">
+            <CardTitle className="text-6xl font-bold text-primary">Error</CardTitle>
+            <CardDescription className="text-lg mt-2">Something went wrong!</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            {error.message || "An unexpected error occurred"}
+          </CardContent>
+          <CardFooter className="flex justify-center gap-4">
+            <Button variant="default" onClick={reset}>
+              Try again
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/">Return Home</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/chat">Start a new chat</Link>
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
