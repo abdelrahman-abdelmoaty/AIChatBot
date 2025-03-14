@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { createStripeCheckoutSession } from "@/app/pricing/actions";
+import { createStripeCheckoutSession } from "@/app/(app)/pricing/actions";
 import { toast } from "sonner";
 
 export function Plans() {
@@ -18,7 +18,6 @@ export function Plans() {
       toast.error(error);
     }
   }
-
   return (
     <div className="container space-y-16 py-20">
       <div className="text-center space-y-4">
@@ -61,7 +60,10 @@ export function Plans() {
             <li>✓ Email support</li>
             <li>✓ Basic instructions</li>
           </ul>
-          <Button className="w-full mt-auto" onClick={() => onSubscribe("price_weekly")}>
+          <Button
+            className="w-full mt-auto"
+            onClick={() => onSubscribe(process.env.NEXT_PUBLIC_STRIPE_WEEKLY_PRICE_ID!)}
+          >
             Subscribe Weekly
           </Button>
         </Card>
@@ -81,7 +83,10 @@ export function Plans() {
             <li>✓ Priority support</li>
             <li>✓ Custom instructions</li>
           </ul>
-          <Button className="w-full mt-auto" onClick={() => onSubscribe("price_pro")}>
+          <Button
+            className="w-full mt-auto"
+            onClick={() => onSubscribe(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!)}
+          >
             Subscribe Pro
           </Button>
         </Card>

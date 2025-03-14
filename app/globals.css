@@ -128,3 +128,11 @@
 .container {
   @apply mx-auto px-4;
 }
+
+.font-goldman {
+  font-family: var(--font-goldman);
+}
+
+.font-inter {
+  font-family: var(--font-inter);
+}

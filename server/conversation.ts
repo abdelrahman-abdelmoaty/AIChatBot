@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/db";
-import { auth } from "@/app/(auth)/auth";
+import { auth } from "@/app/(app)/(auth)/auth";
 
 export const getConversations = async () => {
   try {

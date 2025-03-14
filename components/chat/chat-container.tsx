@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +20,9 @@ export function ChatContainer({
 }) {
   const [chatHistories, setChatHistories] = useState<Conversation[]>(initialConversations);
   const [currentChatId, setCurrentChatId] = useState<string | null>(conversationSlug);
+
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, status, setMessages, setInput } = useChat({
     api: "/api/chat",
@@ -121,7 +124,7 @@ export function ChatContainer({
   const isSubmitting = status === "streaming" || status === "submitted";
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <ChatSidebar
         conversations={chatHistories}
@@ -149,6 +152,9 @@ export function ChatContainer({
               handleInputChange={handleInputChange}
               handleSubmit={handleSubmit}
               isSubmitting={isSubmitting}
+              files={files}
+              fileInputRef={fileInputRef}
+              setFiles={setFiles}
             />
           </div>
         </div>

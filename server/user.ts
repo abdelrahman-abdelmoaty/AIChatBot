@@ -4,7 +4,7 @@ import { z } from "zod";
 import { compare, hash } from "bcrypt-ts";
 
 import { prisma } from "@/lib/db";
-import { auth } from "@/app/(auth)/auth";
+import { auth } from "@/app/(app)/(auth)/auth";
 
 const emailSchema = z
   .string({ required_error: "Email is required" })

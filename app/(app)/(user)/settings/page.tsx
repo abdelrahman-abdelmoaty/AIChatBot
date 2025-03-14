@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { auth } from "@/app/(auth)/auth";
-import { SettingsForm } from "@/app/(user)/settings/settings-form";
+import { auth } from "@/app/(app)/(auth)/auth";
+import { SettingsForm } from "@/app/(app)/(user)/settings/settings-form";
 import { getUserById } from "@/server/user";
 
 export default async function ProfilePage() {

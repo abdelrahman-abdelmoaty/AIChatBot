@@ -1,26 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Goldman, Inter } from "next/font/google";
 import { Toaster } from "sonner";
 
 import "./globals.css";
-import { HeaderServer } from "@/components/layout/header/header-server";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const goldman = Goldman({
+  variable: "--font-goldman",
   subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "AI Chat Assistant",
-    template: "%s | AI Chat Assistant",
+    default: "Haziq",
+    template: "%s | Haziq",
   },
-  description: "Your intelligent AI chat companion",
+  description: "Haziq is a chatbot that can help you with your questions.",
 };
 
 export default function RootLayout({
@@ -30,12 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${goldman.variable} ${inter.variable} ${inter.className} antialiased`}>
         <Toaster richColors />
-        <div className="grid grid-rows-[auto_1fr] min-h-screen">
-          <HeaderServer />
-          <main>{children}</main>
-        </div>
+        {children}
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { auth } from "@/app/(auth)/auth";
+import { auth } from "@/app/(app)/(auth)/auth";
 import { Role } from "@/lib/types";
 export const saveChat = async ({
   conversationId,

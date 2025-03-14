@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/(auth)/auth";
+import { auth } from "@/app/(app)/(auth)/auth";
 import { prisma } from "@/lib/db";
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";

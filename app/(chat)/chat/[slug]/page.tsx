@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/app/(auth)/auth";
+import { auth } from "@/app/(app)/(auth)/auth";
 import { ChatContainer } from "@/components/chat/chat-container";
 import { getConversation, getConversations } from "@/server/conversation";
 import { notFound } from "next/navigation";

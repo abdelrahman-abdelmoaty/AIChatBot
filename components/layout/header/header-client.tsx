@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { signOut } from "@/app/(auth)/actions";
+import { signOut } from "@/app/(app)/(auth)/actions";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -20,15 +20,13 @@ export function HeaderClient({ session }: { session: Session | null }) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b">
       <div className="container flex h-14 justify-between items-center mx-auto">
-        <div className="mr-4 md:mr-6 flex">
-          <Button asChild variant="link" className="mr-6">
-            <Link href="/" className="flex items-center space-x-2">
-              <span className="font-bold text-xl">AI Chat Bot</span>
-            </Link>
-          </Button>
-          <nav className="hidden md:flex items-center space-x-4">
+        <div className="flex items-center gap-6 md:gap-10">
+          <Link href="/" className="font-goldman font-bold text-4xl">
+            Haziq
+          </Link>
+          <nav className="hidden md:flex items-center gap-4">
             <Button
               asChild
               variant="ghost"
@@ -51,18 +49,16 @@ export function HeaderClient({ session }: { session: Session | null }) {
             </Button>
           </nav>
         </div>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <nav className="flex items-center space-x-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
             {session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
+                  <Avatar className="h-8 w-8 hover:scale-105 transition-all duration-300 cursor-pointer">
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
@@ -93,7 +89,7 @@ export function HeaderClient({ session }: { session: Session | null }) {
                 </Button>
               </>
             )}
-          </nav>
+          </div>
         </div>
       </div>
     </header>

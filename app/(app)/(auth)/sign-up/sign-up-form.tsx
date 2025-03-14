@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { signUp } from "@/app/(auth)/actions";
+import { signUp } from "@/app/(app)/(auth)/actions";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
